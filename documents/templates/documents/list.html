@@ -40,5 +40,12 @@
         document.addEventListener('htmx:afterRequest', function () {
             document.getElementById('spinner').classList.add('hidden');
         }, true);
+
+        document.addEventListener('htmx:afterRequest', function (event) {
+            const searchInput = document.querySelector('input[name="q"]');
+            if (searchInput) {
+                searchInput.value = '';
+            }
+        }, true);
     </script>
 {% endblock %}
