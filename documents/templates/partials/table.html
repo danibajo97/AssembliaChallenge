@@ -1,6 +1,6 @@
-<div class="overflow-x-auto">
-    <table class="min-w-full border border-gray-300 divide-y divide-gray-200">
-        <thead class="bg-gray-100">
+<div class="overflow-x-auto shadow rounded-lg bg-white">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gradient-to-r from-blue-50 to-blue-100">
         <tr>
             <th class="border px-4 py-2 text-left w-3/5">Title</th>
             <th class="border px-4 py-2 text-center w-1/6">Number</th>
@@ -12,24 +12,28 @@
         </thead>
         <tbody class="divide-y divide-gray-100">
         {% for doc in documents %}
-            <tr class="hover:bg-gray-50">
-                <td class="border px-4 py-2 text-gray-800">{{ doc.title }}</td>
-                <td class="border px-4 py-2 text-center">{{ doc.number }}</td>
-                <td class="border px-4 py-2 text-center">{{ doc.date }}</td>
-                <td class="border px-4 py-2 text-center">{{ doc.status }}</td>
-                <td class="border px-4 py-2 text-center">
+            <tr class="hover:bg-gray-50 transition">
+                <td class="px-4 py-2">{{ doc.title }}</td>
+                <td class="px-4 py-2 text-center">{{ doc.number }}</td>
+                <td class="px-4 py-2 text-center">{{ doc.date }}</td>
+                <td class="px-4 py-2 text-center">
+                    <span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-700">
+                        {{ doc.status }}
+                    </span>
+                </td>
+                <td class="px-4 py-2 text-center">
                     <a href="{{ doc.url }}" target="_blank" class="text-blue-500 hover:underline">View</a>
                 </td>
-                <td class="border px-4 py-2 text-center">
+                <td class="px-4 py-2 text-center">
                     <button onclick="analyzeDocument({{ doc.id }})"
-                            class="bg-indigo-500 text-white px-3 py-1 rounded hover:bg-indigo-600">
+                            class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded transition">
                         Analyze
                     </button>
                 </td>
             </tr>
         {% empty %}
             <tr>
-                <td colspan="6" class="text-center py-4">No documents found</td>
+                <td colspan="6" class="text-center py-4 text-gray-500">No documents found</td>
             </tr>
         {% endfor %}
         </tbody>

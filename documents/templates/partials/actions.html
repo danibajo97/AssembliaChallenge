@@ -1,11 +1,18 @@
-<div class="flex space-x-2 mb-4">
+<div class="flex flex-wrap items-center space-x-2 mb-4">
     <form hx-get="." hx-target="#table-container" class="flex space-x-2">
         <input type="text" name="q" value="{{ query }}" placeholder="Search..."
-               class="border rounded px-2 py-1">
-        <button type="submit" class="bg-blue-500 text-white px-4 py-1 rounded">Search</button>
+               class="w-64 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <button type="submit"
+                class="flex items-center justify-center w-24 h-10 bg-blue-500 text-white font-medium rounded hover:bg-blue-600 transition">
+            Search
+        </button>
     </form>
     <button hx-get="{% url 'documents:refresh' %}" hx-target="#table-container"
-            class="bg-green-500 text-white px-4 py-1 rounded">Refresh Data
+            class="flex items-center justify-center w-24 h-10 bg-green-500 text-white font-medium rounded hover:bg-green-600 transition">
+        Refresh
     </button>
-    <a href="{% url 'documents:export_csv' %}" class="bg-gray-500 text-white px-4 py-1 rounded">Export CSV</a>
+    <a href="{% url 'documents:export_csv' %}"
+       class="flex items-center justify-center w-24 h-10 bg-gray-500 text-white font-medium rounded hover:bg-gray-600 transition">
+        CSV
+    </a>
 </div>
