@@ -23,7 +23,7 @@ def document_list(request):
     page = request.GET.get("page", 1)
 
     # Filter only today's documents
-    documents = Document.objects.filter(date=today)
+    documents = Document.objects.all().order_by('-date')
     if query:
         documents = documents.filter(title__icontains=query)
 
