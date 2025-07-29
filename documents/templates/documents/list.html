@@ -8,7 +8,10 @@
     </div>
 
     {% include "partials/modal.html" %}
-
+    <div id="spinner"
+         class="hidden fixed inset-0 bg-gray-100 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
+    </div>
     <!-- Scripts -->
     <script>
         document.addEventListener('alpine:init', () => {
@@ -29,5 +32,13 @@
                     window.dispatchEvent(new CustomEvent('show-modal', {detail: data.analysis}));
                 });
         }
+
+        document.addEventListener('htmx:beforeRequest', function () {
+            document.getElementById('spinner').classList.remove('hidden');
+        }, true);
+
+        document.addEventListener('htmx:afterRequest', function () {
+            document.getElementById('spinner').classList.add('hidden');
+        }, true);
     </script>
 {% endblock %}
