@@ -1,0 +1,38 @@
+<div class="overflow-x-auto">
+    <table class="min-w-full border border-gray-300 divide-y divide-gray-200">
+        <thead class="bg-gray-100">
+        <tr>
+            <th class="border px-4 py-2 text-left w-3/5">Title</th>
+            <th class="border px-4 py-2 text-center w-1/6">Number</th>
+            <th class="border px-4 py-2 text-center w-1/6">Date</th>
+            <th class="border px-4 py-2 text-center w-1/12">Status</th>
+            <th class="border px-4 py-2 text-center w-1/12">URL</th>
+            <th class="border px-4 py-2 text-center w-1/12">Actions</th>
+        </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+        {% for doc in documents %}
+            <tr class="hover:bg-gray-50">
+                <td class="border px-4 py-2 text-gray-800">{{ doc.title }}</td>
+                <td class="border px-4 py-2 text-center">{{ doc.number }}</td>
+                <td class="border px-4 py-2 text-center">{{ doc.date }}</td>
+                <td class="border px-4 py-2 text-center">{{ doc.status }}</td>
+                <td class="border px-4 py-2 text-center">
+                    <a href="{{ doc.url }}" target="_blank" class="text-blue-500 hover:underline">View</a>
+                </td>
+                <td class="border px-4 py-2 text-center">
+                    <button onclick="analyzeDocument({{ doc.id }})"
+                            class="bg-indigo-500 text-white px-3 py-1 rounded hover:bg-indigo-600">
+                        Analyze
+                    </button>
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="6" class="text-center py-4">No documents found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% include "partials/pagination.html" %}

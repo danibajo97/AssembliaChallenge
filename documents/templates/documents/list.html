@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+
+    {% include "partials/actions.html" %}
+
+    <div id="table-container">
+        {% include "partials/table.html" %}
+    </div>
+
+    {% include "partials/modal.html" %}
+
+    <!-- Scripts -->
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('aiModal', () => ({
+                open: false,
+                message: '',
+                show(msg) {
+                    this.message = msg;
+                    this.open = true;
+                }
+            }))
+        });
+
+        function analyzeDocument(id) {
+            fetch(`/analyze/${id}/`, {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    window.dispatchEvent(new CustomEvent('show-modal', {detail: data.analysis}));
+                });
+        }
+    </script>
+{% endblock %}
