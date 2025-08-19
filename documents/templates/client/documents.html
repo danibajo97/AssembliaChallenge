@@ -1,0 +1,460 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} - Documentos{% endblock %}
+{% block page_title %}{{ client.name }}{% endblock %}
+{% block page_subtitle %}Gestión de documentos y prioridades{% endblock %}
+
+{% block content %}
+<div x-data="{ 
+    showBulkActions: false,
+    selectedDocs: [],
+    bulkPriority: 'media'
+}" class="space-y-6">
+
+    <!-- Client Header -->
+    <div class="bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl shadow-lg text-white">
+        <div class="px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold">{{ client.name }}</h1>
+                        <p class="text-primary-100">
+                            <i class="fas fa-file-alt mr-2"></i>
+                            {{ document_priorities|length }} documento(s) asignado(s)
+                        </p>
+                    </div>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="{% url 'documents:assign_documents' client.id %}" 
+                       class="px-4 py-2 bg-white text-primary-600 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                        <i class="fas fa-plus mr-2"></i>
+                        Asignar Documentos
+                    </a>
+                    <a href="{% url 'documents:client_list' %}" 
+                       class="px-4 py-2 bg-primary-700 text-white rounded-lg hover:bg-primary-800 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {% with document_priorities as docs %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-file-alt text-blue-600"></i>
+                        </div>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total</p>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ docs|length }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle text-red-600"></i>
+                        </div>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Alta</p>
+                        <p class="text-lg font-semibold text-red-600">
+                            {% for doc in docs %}{% if doc.priority == 'alta' %}{{ forloop.counter0|add:1 }}{% endif %}{% empty %}0{% endfor %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-clock text-yellow-600"></i>
+                        </div>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Media</p>
+                        <p class="text-lg font-semibold text-yellow-600">
+                            {% for doc in docs %}{% if doc.priority == 'media' %}{{ forloop.counter0|add:1 }}{% endif %}{% empty %}0{% endfor %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-arrow-down text-gray-600"></i>
+                        </div>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Baja</p>
+                        <p class="text-lg font-semibold text-gray-600">
+                            {% for doc in docs %}{% if doc.priority == 'baja' %}{{ forloop.counter0|add:1 }}{% endif %}{% empty %}0{% endfor %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        {% endwith %}
+    </div>
+    <!-- Documents Table -->
+    <div id="document-priorities-container" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                    <i class="fas fa-file-text mr-2 text-primary-600"></i>
+                    Documentos Asignados
+                </h3>
+                
+                <!-- Bulk Actions -->
+                <div x-show="selectedDocs.length > 0" x-transition class="flex items-center space-x-3">
+                    <select x-model="bulkPriority" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 dark:bg-gray-700 dark:text-white">
+                        <option value="alta">🔴 Alta</option>
+                        <option value="media">🟡 Media</option>
+                        <option value="baja">⚪ Baja</option>
+                    </select>
+                    <button @click="bulkUpdatePriority()" class="px-3 py-1 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700">
+                        Actualizar <span x-text="selectedDocs.length"></span> docs
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {% if document_priorities %}
+            <div class="overflow-hidden">
+                <!-- Card View for Mobile -->
+                <div class="block md:hidden p-4 space-y-4">
+                    {% for priority in document_priorities %}
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600" 
+                             x-data="{ updating: false }">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex items-center space-x-3">
+                                    <input type="checkbox" 
+                                           :value="{{ priority.document.id }}"
+                                           x-model="selectedDocs"
+                                           class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900 dark:text-white text-sm">
+                                            {{ priority.document.title|truncatechars:40 }}
+                                        </h4>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            {{ priority.document.number }} • {{ priority.document.date }}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                {% if priority.priority == 'alta' %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                                        Alta
+                                    </span>
+                                {% elif priority.priority == 'media' %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                                        <i class="fas fa-clock mr-1"></i>
+                                        Media
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300">
+                                        <i class="fas fa-arrow-down mr-1"></i>
+                                        Baja
+                                    </span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                    {{ priority.document.status }}
+                                </span>
+                                
+                                <div class="flex items-center space-x-2" x-show="!updating">
+                                    <div class="flex rounded-md shadow-sm" role="group">
+                                        <button @click="updatePriority({{ client.id }}, {{ priority.document.id }}, 'alta', $el)"
+                                                class="px-2 py-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-l-lg hover:bg-red-100 focus:z-10 focus:ring-2 focus:ring-red-500">
+                                            A
+                                        </button>
+                                        <button @click="updatePriority({{ client.id }}, {{ priority.document.id }}, 'media', $el)"
+                                                class="px-2 py-1 text-xs font-medium text-yellow-700 bg-yellow-50 border-t border-b border-yellow-200 hover:bg-yellow-100 focus:z-10 focus:ring-2 focus:ring-yellow-500">
+                                            M
+                                        </button>
+                                        <button @click="updatePriority({{ client.id }}, {{ priority.document.id }}, 'baja', $el)"
+                                                class="px-2 py-1 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-r-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-gray-500">
+                                            B
+                                        </button>
+                                    </div>
+                                    <button @click="deletePriority({{ client.id }}, {{ priority.document.id }}, $el)"
+                                            class="p-1 text-red-600 hover:text-red-800"
+                                            title="Eliminar documento">
+                                        <i class="fas fa-trash text-sm"></i>
+                                    </button>
+                                </div>
+                                
+                                <div x-show="updating" class="flex items-center text-primary-600">
+                                    <i class="fas fa-spinner fa-spin mr-1"></i>
+                                    <span class="text-xs">Actualizando...</span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Table View for Desktop -->
+                <div class="hidden md:block overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left">
+                                    <input type="checkbox" 
+                                           @change="$event.target.checked ? selectedDocs = [{% for p in document_priorities %}{{ p.document.id }}{% if not forloop.last %},{% endif %}{% endfor %}] : selectedDocs = []"
+                                           class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Documento
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Número
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Fecha
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Estado
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Prioridad
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Acciones
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            {% for priority in document_priorities %}
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" 
+                                    x-data="{ updating: false }"
+                                    :class="selectedDocs.includes({{ priority.document.id }}) ? 'bg-primary-50 dark:bg-primary-900' : ''">
+                                    
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <input type="checkbox" 
+                                               :value="{{ priority.document.id }}"
+                                               x-model="selectedDocs"
+                                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                                    </td>
+                                    
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                            {{ priority.document.title|truncatechars:60 }}
+                                        </div>
+                                    </td>
+                                    
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                        {{ priority.document.number }}
+                                    </td>
+                                    
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                        {{ priority.document.date }}
+                                    </td>
+                                    
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                            {{ priority.document.status }}
+                                        </span>
+                                    </td>
+                                    
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        {% if priority.priority == 'alta' %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                                {{ priority.get_priority_display }}
+                                            </span>
+                                        {% elif priority.priority == 'media' %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                                                <i class="fas fa-clock mr-1"></i>
+                                                {{ priority.get_priority_display }}
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300">
+                                                <i class="fas fa-arrow-down mr-1"></i>
+                                                {{ priority.get_priority_display }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center space-x-2" x-show="!updating">
+                                            <div class="flex rounded-md shadow-sm" role="group">
+                                                <button @click="updatePriority({{ client.id }}, {{ priority.document.id }}, 'alta', $el)"
+                                                        class="px-3 py-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-l-lg hover:bg-red-100 focus:z-10 focus:ring-2 focus:ring-red-500 dark:bg-red-900 dark:text-red-300 dark:border-red-600 dark:hover:bg-red-800">
+                                                    Alta
+                                                </button>
+                                                <button @click="updatePriority({{ client.id }}, {{ priority.document.id }}, 'media', $el)"
+                                                        class="px-3 py-1 text-xs font-medium text-yellow-700 bg-yellow-50 border-t border-b border-yellow-200 hover:bg-yellow-100 focus:z-10 focus:ring-2 focus:ring-yellow-500 dark:bg-yellow-900 dark:text-yellow-300 dark:border-yellow-600 dark:hover:bg-yellow-800">
+                                                    Media
+                                                </button>
+                                                <button @click="updatePriority({{ client.id }}, {{ priority.document.id }}, 'baja', $el)"
+                                                        class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-r-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-gray-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                                                    Baja
+                                                </button>
+                                            </div>
+                                            <button @click="deletePriority({{ client.id }}, {{ priority.document.id }}, $el)"
+                                                    class="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                                    title="Eliminar documento">
+                                                <i class="fas fa-trash text-sm"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <div x-show="updating" class="flex items-center text-primary-600">
+                                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                                            <span class="text-sm">Actualizando...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% else %}
+            <div class="px-6 py-12 text-center">
+                <div class="flex flex-col items-center">
+                    <i class="fas fa-inbox text-4xl text-gray-400 mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                        No hay documentos asignados
+                    </h3>
+                    <p class="text-gray-500 dark:text-gray-400 mb-6">
+                        Este cliente aún no tiene documentos con prioridades configuradas.
+                    </p>
+                    <a href="{% url 'documents:assign_documents' client.id %}" 
+                       class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>
+                        Asignar Documentos
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+
+<script>
+function updatePriority(clientId, documentId, priority, element) {
+    // Show loading state
+    const container = element.closest('[x-data]');
+    const alpineData = Alpine.$data(container);
+    alpineData.updating = true;
+    
+    fetch(`/priority/update/${clientId}/${documentId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+        },
+        body: `priority=${priority}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        alpineData.updating = false;
+        if (data.success) {
+            showToast(`Prioridad actualizada a ${priority.toUpperCase()}`, 'success');
+            // Refresh page to update stats
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('Error: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        alpineData.updating = false;
+        console.error('Error:', error);
+        showToast('Error al actualizar la prioridad', 'error');
+    });
+}
+
+function deletePriority(clientId, documentId, element) {
+    if (confirm('¿Está seguro de que desea remover este documento del cliente?')) {
+        const container = element.closest('[x-data]');
+        const alpineData = Alpine.$data(container);
+        alpineData.updating = true;
+        
+        fetch(`/priority/delete/${clientId}/${documentId}/`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            alpineData.updating = false;
+            if (data.success) {
+                showToast('Documento eliminado correctamente', 'success');
+                // Animate removal
+                const row = element.closest('tr, .bg-gray-50');
+                if (row) {
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(-100%)';
+                    setTimeout(() => location.reload(), 300);
+                }
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            alpineData.updating = false;
+            console.error('Error:', error);
+            showToast('Error al eliminar el documento', 'error');
+        });
+    }
+}
+
+// Alpine.js functions
+function bulkUpdatePriority() {
+    const selectedDocs = this.selectedDocs;
+    const priority = this.bulkPriority;
+    
+    if (selectedDocs.length === 0) return;
+    
+    if (confirm(`¿Actualizar ${selectedDocs.length} documentos a prioridad ${priority.toUpperCase()}?`)) {
+        let completed = 0;
+        const total = selectedDocs.length;
+        
+        selectedDocs.forEach(docId => {
+            fetch(`/priority/update/{{ client.id }}/${docId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                },
+                body: `priority=${priority}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                completed++;
+                if (completed === total) {
+                    showToast(`${total} documentos actualizados correctamente`, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast(`Error actualizando documento ${docId}`, 'error');
+            });
+        });
+        
+        // Clear selection
+        this.selectedDocs = [];
+    }
+}
+</script>
+
+{% endblock %}

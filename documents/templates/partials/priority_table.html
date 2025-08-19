@@ -1,0 +1,145 @@
+<!-- Priorities Table Partial for HTMX -->
+<div class="overflow-x-auto">
+    <table class="w-full">
+        <thead class="bg-gray-50 dark:bg-gray-700">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Cliente
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Documento
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Número
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Fecha
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Estado
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Prioridad
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Fecha Asignación
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Acciones
+                </th>
+            </tr>
+        </thead>
+        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            {% for priority in priorities %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors fade-in" x-data="{ updating: false }">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <a href="{% url 'documents:client_documents' priority.client.id %}" 
+                           class="text-primary-600 hover:text-primary-800 font-medium">
+                            <i class="fas fa-user mr-1"></i>
+                            {{ priority.client.name }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-gray-900 dark:text-white font-medium">
+                            {{ priority.document.title|truncatechars:50 }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {{ priority.document.number }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {{ priority.document.date }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            {{ priority.document.status }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if priority.priority == 'alta' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                {{ priority.get_priority_display }}
+                            </span>
+                        {% elif priority.priority == 'media' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                                <i class="fas fa-clock mr-1"></i>
+                                {{ priority.get_priority_display }}
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300">
+                                <i class="fas fa-arrow-down mr-1"></i>
+                                {{ priority.get_priority_display }}
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {{ priority.created_at|date:"d/m/Y H:i" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center space-x-2" x-show="!updating">
+                            <div class="flex rounded-md shadow-sm" role="group">
+                                <button hx-post="{% url 'documents:update_priority' priority.client.id priority.document.id %}"
+                                        hx-vals='{"priority": "alta"}'
+                                        hx-target="#priorities-container"
+                                        hx-indicator=".htmx-indicator"
+                                        @click="updating = true"
+                                        class="px-3 py-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-l-lg hover:bg-red-100 focus:z-10 focus:ring-2 focus:ring-red-500 dark:bg-red-900 dark:text-red-300 dark:border-red-600 dark:hover:bg-red-800">
+                                    Alta
+                                </button>
+                                <button hx-post="{% url 'documents:update_priority' priority.client.id priority.document.id %}"
+                                        hx-vals='{"priority": "media"}'
+                                        hx-target="#priorities-container"
+                                        hx-indicator=".htmx-indicator"
+                                        @click="updating = true"
+                                        class="px-3 py-1 text-xs font-medium text-yellow-700 bg-yellow-50 border-t border-b border-yellow-200 hover:bg-yellow-100 focus:z-10 focus:ring-2 focus:ring-yellow-500 dark:bg-yellow-900 dark:text-yellow-300 dark:border-yellow-600 dark:hover:bg-yellow-800">
+                                    Media
+                                </button>
+                                <button hx-post="{% url 'documents:update_priority' priority.client.id priority.document.id %}"
+                                        hx-vals='{"priority": "baja"}'
+                                        hx-target="#priorities-container"
+                                        hx-indicator=".htmx-indicator"
+                                        @click="updating = true"
+                                        class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-r-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-gray-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                                    Baja
+                                </button>
+                            </div>
+                            <button hx-delete="{% url 'documents:delete_priority' priority.client.id priority.document.id %}"
+                                    hx-target="#priorities-container"
+                                    hx-confirm="¿Está seguro de que desea eliminar esta prioridad?"
+                                    hx-indicator=".htmx-indicator"
+                                    @click="updating = true"
+                                    class="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                    title="Eliminar prioridad">
+                                <i class="fas fa-trash text-sm"></i>
+                            </button>
+                        </div>
+                        <div x-show="updating" class="flex items-center text-primary-600">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                            <span class="text-sm">Actualizando...</span>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="8" class="px-6 py-12 text-center">
+                        <div class="flex flex-col items-center">
+                            <i class="fas fa-inbox text-4xl text-gray-400 mb-4"></i>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                                No hay prioridades asignadas
+                            </h3>
+                            <p class="text-gray-500 dark:text-gray-400 mb-6">
+                                Comienza asignando prioridades a los documentos de tus clientes.
+                            </p>
+                            <a href="{% url 'documents:client_list' %}" 
+                               class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                                <i class="fas fa-plus mr-2"></i>
+                                Ver Clientes
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

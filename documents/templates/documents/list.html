@@ -1,51 +1,178 @@
 {% extends "base.html" %}
+
+{% block title %}Documentos BOE - Sistema Documental{% endblock %}
+{% block page_title %}Documentos Oficiales{% endblock %}
+{% block page_subtitle %}Boletín Oficial del Estado - Gestión de documentos{% endblock %}
+
 {% block content %}
+<div x-data="{ 
+    viewMode: 'table',
+    selectedDocs: [],
+    searchTerm: '',
+    filterStatus: '',
+    sortBy: 'date',
+    sortDirection: 'desc',
+    showAnalysis: false,
+    analysisContent: ''
+}" class="space-y-6">
+
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-file-alt text-blue-600"></i>
+                    </div>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Documentos</p>
+                    <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ documents|length }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-600"></i>
+                    </div>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Procesados</p>
+                    <p class="text-lg font-semibold text-green-600">{{ documents|length }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-calendar text-yellow-600"></i>
+                    </div>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Hoy</p>
+                    <p class="text-lg font-semibold text-yellow-600">{{ documents|length }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-robot text-purple-600"></i>
+                    </div>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">IA Disponible</p>
+                    <p class="text-lg font-semibold text-purple-600">Activa</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     {% include "partials/actions.html" %}
 
-    <div id="table-container">
+    <div id="table-container" class="fade-in">
         {% include "partials/table.html" %}
     </div>
 
-    {% include "partials/modal.html" %}
-    <div id="spinner"
-         class="hidden fixed inset-0 bg-gray-100 bg-opacity-50 flex items-center justify-center z-50">
-        <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
+    <!-- Analysis Modal -->
+    <div x-show="showAnalysis" x-transition.opacity 
+         @click.self="showAnalysis = false"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-96 overflow-y-auto" @click.stop>
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        <i class="fas fa-brain mr-2 text-purple-600"></i>
+                        Análisis con IA
+                    </h3>
+                    <button @click.stop="showAnalysis = false" 
+                            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="prose dark:prose-invert" x-html="analysisContent"></div>
+            </div>
+        </div>
     </div>
-    <!-- Scripts -->
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('aiModal', () => ({
-                open: false,
-                message: '',
-                show(msg) {
-                    this.message = msg;
-                    this.open = true;
-                }
-            }))
-        });
 
-        function analyzeDocument(id) {
-            fetch(`/analyze/${id}/`, {method: 'POST'})
-                .then(response => response.json())
-                .then(data => {
-                    window.dispatchEvent(new CustomEvent('show-modal', {detail: data.analysis}));
-                });
+    <!-- Loading Spinner (Initially hidden) -->
+    <div id="spinner" class="htmx-indicator fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50" style="display: none;">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 flex items-center space-x-4">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <span class="text-gray-900 dark:text-white font-medium">Procesando...</span>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('aiModal', () => ({
+        open: false,
+        message: '',
+        show(msg) {
+            this.message = msg;
+            this.open = true;
         }
+    }))
+});
 
-        document.addEventListener('htmx:beforeRequest', function () {
-            document.getElementById('spinner').classList.remove('hidden');
-        }, true);
+function analyzeDocument(id) {
+    console.log('Analyzing document with ID:', id);
+    try {
+        fetch(`/analyze/${id}/`, {method: 'POST'})
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Analysis data received:', data);
+                const analysisDiv = document.querySelector('[x-data]');
+                if (analysisDiv && Alpine) {
+                    const alpineData = Alpine.$data(analysisDiv);
+                    if (alpineData) {
+                        alpineData.analysisContent = data.analysis;
+                        alpineData.showAnalysis = true;
+                        showToast('Análisis completado', 'success');
+                    } else {
+                        console.error('Alpine data not found');
+                        showToast('Error: Datos de Alpine no encontrados', 'error');
+                    }
+                } else {
+                    console.error('Analysis div or Alpine not found');
+                    showToast('Error: Componente no encontrado', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error analyzing document:', error);
+                showToast('Error al analizar documento: ' + error.message, 'error');
+            });
+    } catch (error) {
+        console.error('Exception in analyzeDocument:', error);
+        showToast('Error inesperado al analizar documento', 'error');
+    }
+}
 
-        document.addEventListener('htmx:afterRequest', function () {
-            document.getElementById('spinner').classList.add('hidden');
-        }, true);
+document.addEventListener('htmx:beforeRequest', function () {
+    const spinner = document.getElementById('spinner');
+    if (spinner) {
+        spinner.style.display = 'flex';
+    }
+}, true);
 
-        document.addEventListener('htmx:afterRequest', function (event) {
-            const searchInput = document.querySelector('input[name="q"]');
-            if (searchInput) {
-                searchInput.value = '';
-            }
-        }, true);
-    </script>
+document.addEventListener('htmx:afterRequest', function () {
+    const spinner = document.getElementById('spinner');
+    if (spinner) {
+        spinner.style.display = 'none';
+    }
+}, true);
+</script>
 {% endblock %}
