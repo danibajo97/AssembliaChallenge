@@ -18,7 +18,7 @@ def fetch_documents():
     today_str = datetime.now().strftime('%Y/%m/%d')
     url = f"{BASE_URL}/boe/dias/{today_str}/"
 
-    response = requests.get(url)
+    response = requests.get(url, timeout=5)
     if response.status_code != 200:
         return 0  # If page can't be fetched, nothing to add
 

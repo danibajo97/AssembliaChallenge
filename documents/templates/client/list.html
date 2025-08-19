@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Clientes - Sistema Documental{% endblock %}
+{% block page_title %}Gestión de Clientes{% endblock %}
+{% block page_subtitle %}Administra tus clientes y sus documentos{% endblock %}
+
+{% block content %}
+<div x-data="{ 
+    selectedClients: [],
+    showBulkActions: false,
+    sortBy: 'name',
+    sortDirection: 'asc',
+    viewMode: 'table',
+    searchTerm: '',
+    get filteredClients() {
+        let clients = this.allClients;
+        if (this.searchTerm) {
+            clients = clients.filter(client => 
+                client.name.toLowerCase().includes(this.searchTerm.toLowerCase())
+            );
+        }
+        return this.sortClients(clients);
+    },
+    sortClients(clients) {
+        return clients.sort((a, b) => {
+            let aVal = a[this.sortBy];
+            let bVal = b[this.sortBy];
+            if (this.sortDirection === 'asc') {
+                return aVal > bVal ? 1 : -1;
+            } else {
+                return aVal < bVal ? 1 : -1;
+            }
+        });
+    },
+    toggleSort(field) {
+        if (this.sortBy === field) {
+            this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            this.sortBy = field;
+            this.sortDirection = 'asc';
+        }
+    }
+}" class="space-y-6">
+
+    <!-- Header Actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+        <div class="flex items-center space-x-4">
+            <div class="relative">
+                <input type="text" 
+                       x-model="searchTerm"
+                       placeholder="Buscar clientes..."
+                       class="w-80 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <button @click.stop="viewMode = 'table'" 
+                        :class="viewMode === 'table' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'"
+                        class="p-2 rounded-lg transition-colors">
+                    <i class="fas fa-table"></i>
+                </button>
+                <button @click.stop="viewMode = 'cards'" 
+                        :class="viewMode === 'cards' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'"
+                        class="p-2 rounded-lg transition-colors">
+                    <i class="fas fa-th-large"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'documents:priority_list' %}" 
+               class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center">
+                <i class="fas fa-flag mr-2"></i>
+                Gestión de Prioridades
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-blue-600"></i>
+                    </div>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Clientes</p>
+                    <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ clients|length }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-file-alt text-green-600"></i>
+                    </div>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Docs. Asignados</p>
+                    <p class="text-lg font-semibold text-green-600">
+                        {% for client in clients %}{{ client.count_docu|add:0 }}{% if not forloop.last %}+{% endif %}{% empty %}0{% endfor %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-yellow-600"></i>
+                    </div>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Promedio Docs</p>
+                    <p class="text-lg font-semibold text-yellow-600">
+                        {% if clients %}
+                            {% widthratio clients|length 1 clients|length %}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-purple-600"></i>
+                    </div>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Activos Hoy</p>
+                    <p class="text-lg font-semibold text-purple-600">{{ clients|length }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="table-container" class="fade-in">
+        {% include "client/table.html" %}
+    </div>
+
+</div>
+
+<script>
+// Store client data for Alpine.js
+document.addEventListener('alpine:init', () => {
+    Alpine.store('allClients', [
+        {% for client in clients %}
+        {
+            id: {{ client.id }},
+            name: '{{ client.name|escapejs }}',
+            count_docu: {{ client.count_docu }},
+            url: '{% url "documents:client_documents" client.id %}'
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]);
+});
+</script>
+
+{% endblock %}

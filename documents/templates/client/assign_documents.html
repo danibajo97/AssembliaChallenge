@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+
+{% block title %}Asignar Documentos - {{ client.name }}{% endblock %}
+{% block page_title %}Asignar Documentos{% endblock %}
+{% block page_subtitle %}{{ client.name }} - Selecciona documentos y prioridad{% endblock %}
+
+{% block content %}
+<div x-data="{ 
+    selectedDocs: [],
+    priority: 'media',
+    searchTerm: '',
+    showPreview: false,
+    submitting: false,
+    get filteredDocs() {
+        if (!this.searchTerm) return this.availableDocs;
+        return this.availableDocs.filter(doc => 
+            doc.title.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+            doc.number.toLowerCase().includes(this.searchTerm.toLowerCase())
+        );
+    },
+    get availableDocs() {
+        return [
+            {% for document in available_documents %}
+            {
+                id: {{ document.id }},
+                title: '{{ document.title|escapejs }}',
+                number: '{{ document.number }}',
+                date: '{{ document.date }}',
+                status: '{{ document.status }}'
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+    },
+    toggleDoc(docId) {
+        const index = this.selectedDocs.indexOf(docId);
+        if (index > -1) {
+            this.selectedDocs.splice(index, 1);
+        } else {
+            this.selectedDocs.push(docId);
+        }
+    },
+    selectAll() {
+        this.selectedDocs = this.filteredDocs.map(doc => doc.id);
+    },
+    clearSelection() {
+        this.selectedDocs = [];
+    },
+    isSelected(docId) {
+        return this.selectedDocs.includes(docId);
+    }
+}" class="space-y-6">
+
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl shadow-lg text-white">
+        <div class="px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                        <i class="fas fa-plus text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold">Asignar Documentos</h1>
+                        <p class="text-primary-100">{{ client.name }}</p>
+                    </div>
+                </div>
+                <a href="{% url 'documents:client_documents' client.id %}" 
+                   class="px-4 py-2 bg-primary-700 text-white rounded-lg hover:bg-primary-800 transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Volver
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Main Content -->
+        <div class="lg:col-span-3 space-y-6">
+            <!-- Priority Selection -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                        <i class="fas fa-flag mr-2 text-primary-600"></i>
+                        Seleccionar Prioridad
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-3 gap-4">
+                        <label class="relative cursor-pointer">
+                            <input type="radio" x-model="priority" value="alta" class="sr-only">
+                            <div class="p-4 rounded-lg border-2 transition-all"
+                                 :class="priority === 'alta' ? 'border-red-500 bg-red-50 dark:bg-red-900' : 'border-gray-200 dark:border-gray-600 hover:border-red-300'">
+                                <div class="text-center">
+                                    <i class="fas fa-exclamation-triangle text-2xl text-red-600 mb-2"></i>
+                                    <h4 class="font-medium text-gray-900 dark:text-white">Alta</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Urgente</p>
+                                </div>
+                            </div>
+                        </label>
+                        
+                        <label class="relative cursor-pointer">
+                            <input type="radio" x-model="priority" value="media" class="sr-only">
+                            <div class="p-4 rounded-lg border-2 transition-all"
+                                 :class="priority === 'media' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900' : 'border-gray-200 dark:border-gray-600 hover:border-yellow-300'">
+                                <div class="text-center">
+                                    <i class="fas fa-clock text-2xl text-yellow-600 mb-2"></i>
+                                    <h4 class="font-medium text-gray-900 dark:text-white">Media</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Normal</p>
+                                </div>
+                            </div>
+                        </label>
+                        
+                        <label class="relative cursor-pointer">
+                            <input type="radio" x-model="priority" value="baja" class="sr-only">
+                            <div class="p-4 rounded-lg border-2 transition-all"
+                                 :class="priority === 'baja' ? 'border-gray-500 bg-gray-50 dark:bg-gray-700' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'">
+                                <div class="text-center">
+                                    <i class="fas fa-arrow-down text-2xl text-gray-600 mb-2"></i>
+                                    <h4 class="font-medium text-gray-900 dark:text-white">Baja</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Referencia</p>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents Selection -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                            <i class="fas fa-file-alt mr-2 text-primary-600"></i>
+                            Documentos Disponibles
+                        </h3>
+                        <div class="text-sm text-gray-500 dark:text-gray-400" x-text="`${filteredDocs.length} documento(s)`">
+                        </div>
+                    </div>
+                </div>
+
+                {% if available_documents %}
+                    <!-- Search and Controls -->
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                            <div class="relative flex-1 max-w-md">
+                                <input type="text" 
+                                       x-model="searchTerm"
+                                       placeholder="Buscar documentos..."
+                                       class="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-800 dark:text-white">
+                                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            </div>
+                            
+                            <div class="flex items-center space-x-3">
+                                <span class="text-sm text-gray-600 dark:text-gray-400" x-show="selectedDocs.length > 0">
+                                    <span x-text="selectedDocs.length"></span> seleccionado(s)
+                                </span>
+                                <button type="button" @click="selectAll()" 
+                                        class="px-3 py-1 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 transition-colors">
+                                    Seleccionar Todo
+                                </button>
+                                <button type="button" @click="clearSelection()" 
+                                        class="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors">
+                                    Limpiar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Documents Grid -->
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+                            <template x-for="doc in filteredDocs" :key="doc.id">
+                                <div @click="toggleDoc(doc.id)"
+                                     :class="isSelected(doc.id) ? 'border-primary-500 bg-primary-50 dark:bg-primary-900' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'"
+                                     class="relative p-4 rounded-lg border-2 cursor-pointer transition-all">
+                                    
+                                    <div class="flex items-start space-x-3">
+                                        <input type="checkbox" 
+                                               :checked="isSelected(doc.id)"
+                                               @click.stop="toggleDoc(doc.id)"
+                                               class="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                                        
+                                        <div class="flex-1 min-w-0">
+                                            <h4 class="text-sm font-medium text-gray-900 dark:text-white line-clamp-2" x-text="doc.title"></h4>
+                                            <div class="mt-2 space-y-1">
+                                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                                    <i class="fas fa-hashtag mr-1"></i>
+                                                    <span x-text="doc.number"></span>
+                                                </p>
+                                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                                    <i class="fas fa-calendar mr-1"></i>
+                                                    <span x-text="doc.date"></span>
+                                                </p>
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                                    <span x-text="doc.status"></span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div x-show="isSelected(doc.id)" 
+                                         class="absolute top-2 right-2 w-6 h-6 bg-primary-600 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-check text-white text-xs"></i>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                        
+                        <div x-show="filteredDocs.length === 0" class="text-center py-12">
+                            <i class="fas fa-search text-4xl text-gray-400 mb-4"></i>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                                No se encontraron documentos
+                            </h3>
+                            <p class="text-gray-500 dark:text-gray-400">
+                                Intenta con un término de búsqueda diferente
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+                        <div class="flex justify-between items-center">
+                            <a href="{% url 'documents:client_documents' client.id %}" 
+                               class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                Cancelar
+                            </a>
+                            
+                            <form method="post" @submit="submitting = true">
+                                {% csrf_token %}
+                                <input type="hidden" name="priority" :value="priority">
+                                <template x-for="docId in selectedDocs">
+                                    <input type="hidden" name="documents" :value="docId">
+                                </template>
+                                
+                                <button type="submit" 
+                                        :disabled="selectedDocs.length === 0 || submitting"
+                                        :class="selectedDocs.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary-600 hover:bg-primary-700'"
+                                        class="px-6 py-2 text-white rounded-lg transition-colors flex items-center">
+                                    <span x-show="!submitting">
+                                        <i class="fas fa-plus mr-2"></i>
+                                        Asignar <span x-text="selectedDocs.length"></span> documento(s)
+                                    </span>
+                                    <span x-show="submitting" class="flex items-center">
+                                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                                        Asignando...
+                                    </span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="p-12 text-center">
+                        <i class="fas fa-inbox text-4xl text-gray-400 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                            No hay documentos disponibles
+                        </h3>
+                        <p class="text-gray-500 dark:text-gray-400 mb-6">
+                            Todos los documentos ya están asignados a este cliente o no hay documentos en el sistema.
+                        </p>
+                        <a href="{% url 'documents:client_documents' client.id %}" 
+                           class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                            Volver al Cliente
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Client Info -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                        <i class="fas fa-info-circle mr-2 text-primary-600"></i>
+                        Información
+                    </h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Cliente</dt>
+                        <dd class="mt-1 text-sm text-gray-900 dark:text-white font-medium">{{ client.name }}</dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Documentos asignados</dt>
+                        <dd class="mt-1">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-300">
+                                {{ client.documents.count }} documentos
+                            </span>
+                        </dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Disponibles</dt>
+                        <dd class="mt-1">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                {{ available_documents|length }} documentos
+                            </span>
+                        </dd>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Priority Guide -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                        <i class="fas fa-question-circle mr-2 text-primary-600"></i>
+                        Guía de Prioridades
+                    </h3>
+                </div>
+                <div class="p-6 space-y-3">
+                    <div class="flex items-start space-x-3">
+                        <div class="flex-shrink-0 w-8 h-8 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle text-red-600 text-sm"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-900 dark:text-white">Alta Prioridad</h4>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Documentos urgentes que requieren atención inmediata</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start space-x-3">
+                        <div class="flex-shrink-0 w-8 h-8 bg-yellow-100 dark:bg-yellow-900 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-clock text-yellow-600 text-sm"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-900 dark:text-white">Media Prioridad</h4>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Documentos de procesamiento normal y rutinario</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start space-x-3">
+                        <div class="flex-shrink-0 w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-arrow-down text-gray-600 text-sm"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-900 dark:text-white">Baja Prioridad</h4>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Documentos de referencia y consulta posterior</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview Panel -->
+            <div x-show="selectedDocs.length > 0" 
+                 x-transition
+                 class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                        <i class="fas fa-eye mr-2 text-primary-600"></i>
+                        Vista Previa
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Documentos:</span>
+                            <span class="text-sm text-gray-900 dark:text-white" x-text="selectedDocs.length"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Prioridad:</span>
+                            <span class="text-sm font-medium" 
+                                  :class="{
+                                      'text-red-600': priority === 'alta',
+                                      'text-yellow-600': priority === 'media',
+                                      'text-gray-600': priority === 'baja'
+                                  }"
+                                  x-text="priority.toUpperCase()"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

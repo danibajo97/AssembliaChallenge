@@ -7,10 +7,6 @@
             Search
         </button>
     </form>
-    <button hx-get="{% url 'documents:refresh' %}" hx-target="#table-container"
-            class="flex items-center justify-center w-24 h-10 bg-green-500 text-white font-medium rounded hover:bg-green-600 transition">
-        Refresh
-    </button>
     <a href="{% url 'documents:export_csv' %}"
        class="flex items-center justify-center w-24 h-10 bg-gray-500 text-white font-medium rounded hover:bg-gray-600 transition">
         CSV
