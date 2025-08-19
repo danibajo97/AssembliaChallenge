@@ -8,6 +8,8 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.paginator import Paginator
 from django.views.generic import ListView, DetailView, UpdateView
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from rest_framework.reverse import reverse_lazy
 
 from .forms import ClientForm
@@ -15,6 +17,7 @@ from .models import Document, Client, ClientDocumentPriority
 from .scraping import fetch_documents
 
 
+@login_required
 def document_list(request):
     """
     View to list only today's documents with optional search and pagination.
@@ -50,6 +53,7 @@ def document_list(request):
     return render(request, "documents/list.html", context)
 
 
+@login_required
 def refresh(request):
     """
     Refresh today's documents list by scraping new data.
@@ -59,6 +63,7 @@ def refresh(request):
     return document_list(request)
 
 
+@login_required
 def export_csv(request):
     """
     Export only today's documents as CSV.
@@ -75,6 +80,7 @@ def export_csv(request):
     return response
 
 
+@login_required
 @csrf_exempt
 def analyze_document(request, pk):
     """
@@ -98,7 +104,7 @@ def analyze_document(request, pk):
         return JsonResponse({"error": "Document not found"}, status=404)
 
 
-class ClientView(ListView):
+class ClientView(LoginRequiredMixin, ListView):
     model = Client
     template_name = "client/list.html"
     context_object_name = "clients"
@@ -107,7 +113,7 @@ class ClientView(ListView):
         return Client.objects.filter(customer=self.request.user).annotate(count_docu=models.Count("documents"))
 
 
-class ClientDocumentsView(DetailView):
+class ClientDocumentsView(LoginRequiredMixin, DetailView):
     model = Client
     template_name = "client/documents.html"
     context_object_name = "client"
@@ -120,7 +126,7 @@ class ClientDocumentsView(DetailView):
         return context
 
 
-class ClientUpdateView(UpdateView):
+class ClientUpdateView(LoginRequiredMixin, UpdateView):
     model = Client
     form_class = ClientForm
     template_name = "client/form.html"
@@ -128,7 +134,7 @@ class ClientUpdateView(UpdateView):
     success_url = reverse_lazy("documents:client_list")
 
 
-class ClientDocumentPriorityView(ListView):
+class ClientDocumentPriorityView(LoginRequiredMixin, ListView):
     model = ClientDocumentPriority
     template_name = "client/priority_list.html"
     context_object_name = "priorities"
@@ -180,6 +186,7 @@ class ClientDocumentPriorityView(ListView):
         return context
 
 
+@login_required
 @csrf_exempt
 def update_document_priority(request, client_id, document_id):
     """
@@ -248,6 +255,7 @@ def update_document_priority(request, client_id, document_id):
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 
+@login_required
 @csrf_exempt
 def delete_document_priority(request, client_id, document_id):
     """
@@ -309,6 +317,7 @@ def delete_document_priority(request, client_id, document_id):
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 
+@login_required
 def assign_documents_to_client(request, client_id):
     """
     View to assign documents to a client with priorities
